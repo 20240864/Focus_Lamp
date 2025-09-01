@@ -19,7 +19,7 @@ class MotorsService(ServiceBase):
     def start(self):
         super().start()
         self.robot = LeLampFollower(self.robot_config)
-        self.robot.connect(calibrate=False)
+        self.robot.connect(calibrate=True)
         self.logger.info(f"Motors service connected to {self.port}")
 
     def stop(self, timeout: float = 5.0):
@@ -31,9 +31,28 @@ class MotorsService(ServiceBase):
     def handle_event(self, event_type: str, payload: Any):
         if event_type == "play":
             self._handle_play(payload)
+        elif event_type == "go_home":
+            self._go_home()
         else:
             self.logger.warning(f"Unknown event type: {event_type}")
     
+    def _go_home(self):
+        """Move the robot to its calibrated home position."""
+        if not self.robot:
+            self.logger.error("Robot not connected")
+            return
+        try:
+            self.logger.info("Homing robot...")
+            # Sending an empty action or zeroed action dictionary triggers homing 
+            # based on the `homing_offset` in the calibration file.
+            home_action = {joint: 0.0 for joint in self.robot.joints}
+            self.robot.send_action(home_action)
+            # Give it a moment to reach the home position
+            time.sleep(1.5)
+            self.logger.info("Homing complete.")
+        except Exception as e:
+            self.logger.error(f"Error during homing: {e}")
+
     def _handle_play(self, recording_name: str):
         """Play a recording by name"""
         if not self.robot:
@@ -79,10 +98,10 @@ class MotorsService(ServiceBase):
         recordings = []
         suffix = f"_{self.lamp_id}.csv"
         
-        for filename in os.listdir(self.recordings_dir):
+        for filename in sorted(os.listdir(self.recordings_dir)):
             if filename.endswith(suffix):
                 # Remove the lamp_id suffix to get the recording name
                 recording_name = filename[:-len(suffix)]
                 recordings.append(recording_name)
         
-        return sorted(recordings)
+        return recordings

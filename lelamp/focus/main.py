@@ -38,67 +38,68 @@ def load_params_from_config():
         print(f"Error: Could not decode JSON from {config_path}")
         return None
 
-def input_listener(focus_service, motors_service):
-    """Listens for user input to trigger actions."""
+def input_listener(motors_service: MotorsService, available_actions: list):
+    """Waits for user input and dispatches events to the motors service"""
     while True:
         try:
-            user_input = input("\nEnter '1' to play a recorded action, or 'q' to quit listener: ")
-            if user_input == '1':
-                focus_service.pause()
-                print("\n--- Playing recorded action: curious_lelamp ---")
-                motors_service.dispatch("play", 'curious_lelamp')
-                motors_service.wait_until_idle(timeout=30) # Wait for action to complete
-                print("--- Action replay finished ---")
-                focus_service.resume()
-            elif user_input.lower() == 'q':
-                print("Stopping input listener.")
+            user_input = input(
+                "Enter a number to play an action (1-5), or 'q' to quit: "
+            )
+            if user_input.lower() == "q":
                 break
-        except (EOFError, KeyboardInterrupt):
-            # This handles cases where the main program exits and closes stdin
-            break
+
+            action_index = int(user_input) - 1
+            if 0 <= action_index < len(available_actions):
+                action_name = available_actions[action_index]
+                print(f"Playing action: {action_name}")
+                motors_service.dispatch("play", action_name)
+            else:
+                print("Invalid number. Please try again.")
+
+        except (ValueError, IndexError):
+            print("Invalid input. Please enter a number from the list.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
 
 def main():
-    # Load parameters from config file
-    params = load_params_from_config()
-    if not params:
-        print("Exiting due to configuration error.")
-        return
-
-    print("\nInitializing services...")
-    rgb_service = RGBService()
-    motors_service = MotorsService(port=params['lamp_port'], lamp_id=params['lamp_id'])
-    
-    rgb_service.start()
+    """Main function"""
+    logging.basicConfig(level=logging.INFO)
+    lamp_id = "lelamp"
+    motors_service = MotorsService(port="COM3", lamp_id=lamp_id)
     motors_service.start()
 
-    focus_service = FocusService(rgb_service)
+    # Go to home position at startup
+    print("Initializing lamp to home position...")
+    motors_service.dispatch("go_home")
+    print("Initialization complete.")
+
+    # Get available actions
+    available_actions = motors_service.get_available_recordings()
+    if not available_actions:
+        print("No recordings found for this lamp.")
+    else:
+        print("Available actions:")
+        for i, action in enumerate(available_actions):
+            print(f"  {i+1}: {action}")
+
+    # Start input listener thread
+    listener_thread = threading.Thread(
+        target=input_listener, args=(motors_service, available_actions)
+    )
+    listener_thread.daemon = True
+    listener_thread.start()
 
     try:
-        print(f"Calculating light schedule with parameters: {params}")
-        schedule = focus_service.calculate_light_schedule(**{k: v for k, v in params.items() if k not in ['lamp_port', 'lamp_id']})
-
-        if schedule:
-            # Run the focus session in a separate thread
-            session_thread = threading.Thread(target=focus_service.run_focus_session, args=(schedule,))
-            session_thread.start()
-            print("Focus session started in the background.")
-
-            # Start the input listener in a daemon thread
-            listener_thread = threading.Thread(target=input_listener, args=(focus_service, motors_service), daemon=True)
-            listener_thread.start()
-
-            # Keep the main thread alive while the session is running
-            session_thread.join()
-        else:
-            print("Failed to generate a valid schedule.")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        # Keep the main thread alive to allow services and listeners to run
+        while listener_thread.is_alive():
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("\nShutting down...")
     finally:
-        print("\nShutting down services...")
         motors_service.stop()
-        rgb_service.stop()
-        print("Services stopped.")
+        print("Shutdown complete.")
+
 
 if __name__ == "__main__":
     main()
