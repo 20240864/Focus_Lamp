@@ -3,6 +3,7 @@ import sys
 import os
 import threading
 import time
+import json
 
 # Add the project root to the python path to allow imports from other services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -11,97 +12,36 @@ from lelamp.service.rgb import RGBService
 from lelamp.focus.focus_service import FocusService
 
 
-def get_user_input():
-    """Get task parameters from user input in the terminal."""
-    print("Please provide the details for your focus session.")
-
-    # Task Duration
-    while True:
-        try:
-            duration_str = input("- Enter total task duration in minutes: ")
-            duration = int(duration_str)
-            if duration > 0:
-                break
-            else:
-                print("  Invalid input. Duration must be a positive integer.")
-        except ValueError:
-            print("  Invalid input. Please enter a whole number.")
-
-    # Fatigue Level
-    while True:
-        try:
-            fatigue_str = input("- Enter user fatigue level (1-5): ")
-            fatigue = int(fatigue_str)
-            if 1 <= fatigue <= 5:
-                break
-            else:
-                print("  Invalid input. Please enter a number between 1 and 5.")
-        except ValueError:
-            print("  Invalid input. Please enter a whole number.")
-
-    # Focus Mode
-    while True:
-        try:
-            mode_str = input("- Enter focus mode (1 for 'focus', -1 for 'divergent'): ")
-            mode = int(mode_str)
-            if mode in [-1, 1]:
-                break
-            else:
-                print("  Invalid input. Please enter 1 or -1.")
-        except ValueError:
-            print("  Invalid input. Please enter a whole number.")
-
-    # Start time
-    hour, minute = get_start_time()
-
-    return {
-        "start_hour": hour,
-        "start_minute": minute,
-        "total_duration_min": duration,
-        "fatigue_level": fatigue,
-        "focus_mode_m": mode,
-    }
-
-def get_start_time():
-    """Get the task start time from the user."""
-    while True:
-        use_current = input("- Use current time as start time? (Y/n): ").lower().strip()
-        if use_current in ['y', 'yes', '']:
-            now = datetime.datetime.now()
-            return now.hour, now.minute
-        elif use_current in ['n', 'no']:
-            # Get hour
-            while True:
-                try:
-                    hour_str = input("  - Enter task start hour (0-23): ")
-                    hour = int(hour_str)
-                    if 0 <= hour <= 23:
-                        break
-                    else:
-                        print("    Invalid input. Please enter a number between 0 and 23.")
-                except ValueError:
-                    print("    Invalid input. Please enter a whole number.")
-            # Get minute
-            while True:
-                try:
-                    minute_str = input("  - Enter task start minute (0-59): ")
-                    minute = int(minute_str)
-                    if 0 <= minute <= 59:
-                        break
-                    else:
-                        print("    Invalid input. Please enter a number between 0 and 59.")
-                except ValueError:
-                    print("    Invalid input. Please enter a whole number.")
-            return hour, minute
-        else:
-            print("  Invalid choice. Please enter 'y' or 'n'.")
+def load_params_from_config():
+    """Load task parameters from a JSON config file."""
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'focus_config.json')
+    print(f"Loading parameters from {config_path}")
+    try:
+        with open(config_path, 'r') as f:
+            params = json.load(f)
+        
+        # Optional: Validate parameters if needed
+        if not all(k in params for k in ["start_hour", "start_minute", "total_duration_min", "fatigue_level", "focus_mode_m"]):
+            print("Config file is missing one or more required parameters.")
+            return None
+            
+        return params
+    except FileNotFoundError:
+        print(f"Error: Configuration file not found at {config_path}")
+        return None
+    except json.JSONDecodeError:
+        print(f"Error: Could not decode JSON from {config_path}")
+        return None
 
 
 def main():
-    # Get parameters from user
-    params = get_user_input()
+    # Load parameters from config file
+    params = load_params_from_config()
+    if not params:
+        print("Exiting due to configuration error.")
+        return
 
-    print("\nInitializing services...")
+    print("Initializing services...")
     # Directly initialize RGBService, same as in test_rgb.py
     rgb_service = RGBService()
 
