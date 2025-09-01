@@ -48,7 +48,7 @@ class MotorsService(ServiceBase):
             self.logger.info("Homing robot...")
             # Sending an empty action or zeroed action dictionary triggers homing
             # based on the `homing_offset` in the calibration file.
-            home_action = {joint: 0.0 for joint in self.robot.joints}
+            home_action = {f"{joint}.pos": 0.0 for joint in self.robot.bus.motors}
             self.robot.send_action(home_action)
             # Give it a moment to reach the home position
             time.sleep(1.5)

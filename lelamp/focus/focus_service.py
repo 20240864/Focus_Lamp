@@ -72,6 +72,7 @@ class FocusService:
         self.rgb_service = rgb_service
         self._running_event = threading.Event()
         self._running_event.set()  # Set to running by default
+        self._stop_event = threading.Event()
 
     def calculate_light_schedule(self, start_hour, start_minute, total_duration_min, fatigue_level, focus_mode_m):
         """
@@ -154,6 +155,8 @@ class FocusService:
         print(f"Total estimated duration: {total_duration / 60:.2f} minutes.")
 
         for i, (duration_sec, cct, lux) in enumerate(schedule):
+            if self._stop_event.is_set():
+                break
             print(f"--- Phase {i+1}/{len(schedule)} ---")
             print(f"Duration: {duration_sec / 60:.2f} minutes")
             print(f"Color Temperature: {cct}K")
@@ -170,13 +173,17 @@ class FocusService:
             # Dispatch to RGB service
             self.rgb_service.dispatch("solid", final_rgb, Priority.NORMAL)
             
-            # Wait for the duration of the phase, checking for pause events
+            # Wait for the duration of the phase, checking for pause/stop events
             start_time = time.time()
             while time.time() - start_time < duration_sec:
-                self._running_event.wait()  # Blocks if paused
-                time.sleep(0.1)  # Check every 100ms
+                if self._stop_event.is_set():
+                    break
+                self._running_event.wait(timeout=0.1)  # Blocks if paused, checks for stop event
             
-        print("--- Focus session completed! ---")
+            if self._stop_event.is_set():
+                break
+            
+        print("--- Focus session completed or stopped! ---")
 
     def pause(self):
         """Pauses the focus session."""
@@ -187,6 +194,12 @@ class FocusService:
         """Resumes the focus session."""
         self._running_event.set()
         print("Focus session resumed.")
+
+    def stop(self):
+        """Stops the focus session."""
+        self._stop_event.set()
+        self._running_event.set()  # Ensure the wait() loop unblocks to see the stop signal
+        print("Focus session stopping.")
 
 
 def run_example_scenario():
