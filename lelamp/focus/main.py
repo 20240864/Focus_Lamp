@@ -1,6 +1,12 @@
 import argparse
 import datetime
-from lelamp.service.rgb.rgb_service import RGBService
+import sys
+import os
+
+# Add the project root to the python path to allow imports from other services
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from service.rgb import RGBService
 from lelamp.focus.focus_service import FocusService
 import threading
 import time
@@ -26,20 +32,8 @@ def main():
     args = parser.parse_args()
 
     print("Initializing services...")
-    # We need a mock RGBService if we are not on a Raspberry Pi
-    try:
-        rgb_service = RGBService()
-    except (ImportError, RuntimeError):
-        print("Could not initialize RPi.GPIO. Using a mock RGBService.")
-        class MockRGBService:
-            def dispatch(self, event_type, payload):
-                print(f"MockRGBService: Dispatched event '{event_type}' with payload {payload}")
-            def start(self):
-                print("MockRGBService: Started.")
-            # 模拟停止方法
-            def stop(self):
-                print("MockRGBService: Stopped.")
-        rgb_service = MockRGBService()
+    # 直接初始化RGBService，就像test_rgb.py一样
+    rgb_service = RGBService()
 
 
     rgb_service.start()
