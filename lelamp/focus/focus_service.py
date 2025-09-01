@@ -2,6 +2,7 @@ import time
 import sys
 import os
 import math
+import threading
 
 # Add the project root to the python path to allow imports from other services
 # 允许从其他服务导入
@@ -69,6 +70,8 @@ class FocusService:
     """
     def __init__(self, rgb_service: RGBService):
         self.rgb_service = rgb_service
+        self._running_event = threading.Event()
+        self._running_event.set()  # Set to running by default
 
     def calculate_light_schedule(self, start_hour, start_minute, total_duration_min, fatigue_level, focus_mode_m):
         """
@@ -167,10 +170,23 @@ class FocusService:
             # Dispatch to RGB service
             self.rgb_service.dispatch("solid", final_rgb, Priority.NORMAL)
             
-            # Wait for the duration of the phase
-            time.sleep(duration_sec)
+            # Wait for the duration of the phase, checking for pause events
+            start_time = time.time()
+            while time.time() - start_time < duration_sec:
+                self._running_event.wait()  # Blocks if paused
+                time.sleep(0.1)  # Check every 100ms
             
         print("--- Focus session completed! ---")
+
+    def pause(self):
+        """Pauses the focus session."""
+        self._running_event.clear()
+        print("Focus session paused.")
+
+    def resume(self):
+        """Resumes the focus session."""
+        self._running_event.set()
+        print("Focus session resumed.")
 
 
 def run_example_scenario():

@@ -3,5 +3,7 @@
     "start_minute": 30,
     "total_duration_min": 60,
     "fatigue_level": 3,
-    "focus_mode_m": 1
+    "focus_mode_m": 1,
+    "lamp_port": "/dev/ttyACM1",
+    "lamp_id": "lelamp"
 }
