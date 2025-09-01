@@ -46,12 +46,45 @@ class MotorsService(ServiceBase):
         try:
             self.homing = True
             self.logger.info("Homing robot...")
-            # Sending an empty action or zeroed action dictionary triggers homing
-            # based on the `homing_offset` in the calibration file.
             home_action = {f"{joint}.pos": 0.0 for joint in self.robot.bus.motors}
             self.robot.send_action(home_action)
-            # Give it a moment to reach the home position
-            time.sleep(1.5)
+
+            self.logger.info("Waiting for homing movement to complete by checking position stability...")
+
+            last_positions = None
+            stable_counter = 0
+            # Threshold in degrees. If position changes less than this, it's considered stable.
+            MOVEMENT_THRESHOLD = 0.5
+            # How many consecutive stable reads we need to be sure it stopped.
+            STABLE_READS_REQUIRED = 5  # e.g., 5 * 0.1s = 0.5 seconds of stability
+
+            while stable_counter < STABLE_READS_REQUIRED:
+                try:
+                    current_positions = self.robot.bus.sync_read("Present_Position")
+
+                    if last_positions is not None:
+                        is_moving = False
+                        for motor_name in current_positions:
+                            if abs(current_positions[motor_name] - last_positions.get(motor_name, 0)) > MOVEMENT_THRESHOLD:
+                                is_moving = True
+                                break
+                        
+                        if is_moving:
+                            stable_counter = 0
+                        else:
+                            stable_counter += 1
+                    
+                    last_positions = current_positions
+
+                except Exception as read_exc:
+                    self.logger.warning(f"Could not read 'Present_Position' for stability check: {read_exc}. Retrying...")
+                    stable_counter = 0
+                
+                time.sleep(0.1)
+
+            # Wait an additional second after motors have stopped
+            time.sleep(1.0)
+
             self.logger.info("Homing complete.")
         except Exception as e:
             self.logger.error(f"Error during homing: {e}")

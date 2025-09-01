@@ -12,6 +12,78 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from lelamp.service.rgb import RGBService
 from lelamp.service.motors import MotorsService
 from lelamp.focus.focus_service import FocusService
+from lelamp.follower.lelamp_follower import LeLampFollower
+from lelamp.follower.config_lelamp_follower import LeLampFollowerConfig
+
+# 直接读取home.json文件中的homing_offset数据并控制舵机
+def go_home_direct(port, lamp_id):
+    """直接读取home.json文件中的homing_offset数据作为home状态"""
+    try:
+        # 读取home.json文件
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        home_config_path = os.path.join(project_root, 'lelamp', 'follower', 'home.json')
+        
+        print(f"读取home配置文件: {home_config_path}")
+        with open(home_config_path, 'r') as f:
+            home_config = json.load(f)
+        
+        if 'homing_offset' not in home_config:
+            print("错误: home.json中未找到homing_offset数据")
+            return False
+        
+        homing_offset = home_config['homing_offset']
+        print("读取到的homing_offset:")
+        for motor_name, position in homing_offset.items():
+            print(f"  {motor_name}: {position:.3f}")
+        
+        # 初始化机械臂连接
+        robot_config = LeLampFollowerConfig(port=port, id=lamp_id)
+        robot = LeLampFollower(robot_config)
+        
+        print("正在连接机械臂...")
+        robot.connect(calibrate=False)  # 不使用自动校准，直接控制
+        print("连接成功！")
+        
+        # 启用扭矩
+        robot.bus.enable_torque()
+        
+        # 直接将homing_offset中的位置值发送给舵机
+        print("正在移动到home位置...")
+        
+        # 构建目标位置字典，直接使用homing_offset中的值
+        target_positions = {}
+        for motor_name in robot.bus.motors.keys():
+            if motor_name in homing_offset:
+                target_positions[motor_name] = homing_offset[motor_name]
+            else:
+                print(f"警告: 在homing_offset中未找到电机 {motor_name}")
+                target_positions[motor_name] = 0.0
+        
+        print("发送的目标位置:")
+        for motor_name, position in target_positions.items():
+            print(f"  {motor_name}: {position:.3f}")
+        
+        # 直接使用bus.sync_write发送位置命令
+        robot.bus.sync_write("Goal_Position", target_positions)
+        
+        # 等待运动完成
+        print("等待运动完成...")
+        time.sleep(2)
+        
+        # 检查当前位置
+        current_positions = robot.bus.sync_read("Present_Position")
+        print("当前位置:")
+        for motor_name, current_pos in current_positions.items():
+            print(f"  {motor_name}: {current_pos:.3f}")
+        
+        # 断开连接
+        robot.disconnect()
+        print("✅ 已到达home位置！")
+        return True
+        
+    except Exception as e:
+        print(f"go_home_direct执行失败: {e}")
+        return False
 
 # 从JSON文件加载参数
 def load_params_from_config():
@@ -59,12 +131,12 @@ def main():
     while motors_service.is_playing():
         time.sleep(0.1)
     
-    # 记录当前位置为home状态（通过调用go_home来确保一致性）
-    print("记录当前位置为home状态...")
-    motors_service.dispatch("go_home", None)
-    while motors_service.is_homing():
-        time.sleep(0.1)
-    print("Home状态设定完成。")
+    # 使用直接读取home.json的方式设定home状态
+    print("使用home.json数据设定home状态...")
+    if go_home_direct(params['lamp_port'], params['lamp_id']):
+        print("Home状态设定完成。")
+    else:
+        print("Home状态设定失败，请检查配置文件。")
 
     # 步骤2: 启动RGB灯光系统
     print("\n步骤2: 启动RGB灯光系统...")
@@ -112,13 +184,14 @@ def main():
                     # 执行动作
                     motors_service.dispatch("play", action_name)
                     while motors_service.is_playing():
-                        time.sleep(0.1)
+                        time.sleep(5)
                     
+                    print("动作完成，正在返回home状态...")
                     # 返回home状态
-                    print("动作完成，返回home状态...")
-                    motors_service.dispatch("go_home", None)
-                    while motors_service.is_homing():
-                        time.sleep(0.1)
+                    if go_home_direct(params['lamp_port'], params['lamp_id']):
+                        print("已返回home状态")
+                    else:
+                        print("返回home状态失败")
 
                     print("--- 恢复灯光系统 ---")
                     focus_service.resume()

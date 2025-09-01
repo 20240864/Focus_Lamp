@@ -1,0 +1,32 @@
+{
+    "id": "lelamp",
+    "motors": {
+        "base_yaw": {
+            "id": 1,
+            "model": "xl330-m077"
+        },
+        "base_pitch": {
+            "id": 2,
+            "model": "xl330-m077"
+        },
+        "elbow_pitch": {
+            "id": 3,
+            "model": "xl330-m077"
+        },
+        "wrist_pitch": {
+            "id": 4,
+            "model": "xl330-m077"
+        },
+        "wrist_roll": {
+            "id": 5,
+            "model": "xl330-m077"
+        }
+    },
+    "homing_offset": {
+        "base_yaw": -0.8797653958944238,
+        "base_pitch": -57.32734418865806,
+        "elbow_pitch": 34.34173669467785,
+        "wrist_roll": -6.910866910866915,
+        "wrist_pitch": 100.0
+    }
+}
