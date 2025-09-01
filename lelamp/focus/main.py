@@ -1,52 +1,114 @@
-import argparse
 import datetime
 import sys
 import os
-
-# Add the project root to the python path to allow imports from other services
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-from service.rgb import RGBService
-from lelamp.focus.focus_service import FocusService
 import threading
 import time
 
-def main():
-    # 解析命令行参数
-    parser = argparse.ArgumentParser(description="Run a focus lamp session.")
-    # 任务开始时间
-    # 任务开始时间，默认当前时间
-    parser.add_argument("--hour", type=int, default=datetime.datetime.now().hour, help="Task start hour (0-23). Default is current hour.")
-    # 任务开始分钟
-    parser.add_argument("--minute", type=int, default=datetime.datetime.now().minute, help="Task start minute (0-59). Default is current minute.")
-    # 任务持续时间
-    parser.add_argument("--duration", type=int, required=True, help="Total task duration in minutes.")
-    # 任务疲劳等级
-    parser.add_argument("--fatigue", type=int, required=True, choices=range(1, 6), help="User fatigue level (1-5).")
-    # 任务模式
-    # 1 专注模式
-    # -1 发散模式
-    parser.add_argument("--mode", type=int, required=True, choices=[-1, 1], help="Focus mode: 1 for 'focus', -1 for 'divergent'.")
-    
-    # 解析参数
-    args = parser.parse_args()
+# Add the project root to the python path to allow imports from other services
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-    print("Initializing services...")
-    # 直接初始化RGBService，就像test_rgb.py一样
+from lelamp.service.rgb import RGBService
+from lelamp.focus.focus_service import FocusService
+
+
+def get_user_input():
+    """Get task parameters from user input in the terminal."""
+    print("Please provide the details for your focus session.")
+
+    # Task Duration
+    while True:
+        try:
+            duration_str = input("- Enter total task duration in minutes: ")
+            duration = int(duration_str)
+            if duration > 0:
+                break
+            else:
+                print("  Invalid input. Duration must be a positive integer.")
+        except ValueError:
+            print("  Invalid input. Please enter a whole number.")
+
+    # Fatigue Level
+    while True:
+        try:
+            fatigue_str = input("- Enter user fatigue level (1-5): ")
+            fatigue = int(fatigue_str)
+            if 1 <= fatigue <= 5:
+                break
+            else:
+                print("  Invalid input. Please enter a number between 1 and 5.")
+        except ValueError:
+            print("  Invalid input. Please enter a whole number.")
+
+    # Focus Mode
+    while True:
+        try:
+            mode_str = input("- Enter focus mode (1 for 'focus', -1 for 'divergent'): ")
+            mode = int(mode_str)
+            if mode in [-1, 1]:
+                break
+            else:
+                print("  Invalid input. Please enter 1 or -1.")
+        except ValueError:
+            print("  Invalid input. Please enter a whole number.")
+
+    # Start time
+    hour, minute = get_start_time()
+
+    return {
+        "start_hour": hour,
+        "start_minute": minute,
+        "total_duration_min": duration,
+        "fatigue_level": fatigue,
+        "focus_mode_m": mode,
+    }
+
+def get_start_time():
+    """Get the task start time from the user."""
+    while True:
+        use_current = input("- Use current time as start time? (Y/n): ").lower().strip()
+        if use_current in ['y', 'yes', '']:
+            now = datetime.datetime.now()
+            return now.hour, now.minute
+        elif use_current in ['n', 'no']:
+            # Get hour
+            while True:
+                try:
+                    hour_str = input("  - Enter task start hour (0-23): ")
+                    hour = int(hour_str)
+                    if 0 <= hour <= 23:
+                        break
+                    else:
+                        print("    Invalid input. Please enter a number between 0 and 23.")
+                except ValueError:
+                    print("    Invalid input. Please enter a whole number.")
+            # Get minute
+            while True:
+                try:
+                    minute_str = input("  - Enter task start minute (0-59): ")
+                    minute = int(minute_str)
+                    if 0 <= minute <= 59:
+                        break
+                    else:
+                        print("    Invalid input. Please enter a number between 0 and 59.")
+                except ValueError:
+                    print("    Invalid input. Please enter a whole number.")
+            return hour, minute
+        else:
+            print("  Invalid choice. Please enter 'y' or 'n'.")
+
+
+def main():
+    # Get parameters from user
+    params = get_user_input()
+
+    print("\nInitializing services...")
+    # Directly initialize RGBService, same as in test_rgb.py
     rgb_service = RGBService()
 
 
     rgb_service.start()
 
     focus_service = FocusService(rgb_service)
-
-    params = {
-        "start_hour": args.hour,
-        "start_minute": args.minute,
-        "total_duration_min": args.duration,
-        "fatigue_level": args.fatigue,
-        "focus_mode_m": args.mode,
-    }
 
     try:
         print(f"Calculating light schedule with parameters: {params}")
@@ -68,6 +130,7 @@ def main():
         print("Shutting down services...")
         rgb_service.stop()
         print("Services stopped.")
+
 
 if __name__ == "__main__":
     main()

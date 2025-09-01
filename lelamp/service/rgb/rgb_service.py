@@ -1,5 +1,26 @@
 from typing import Any, List, Union
-from rpi_ws281x import PixelStrip, Color
+try:
+    from rpi_ws281x import PixelStrip, Color
+except (ImportError, ModuleNotFoundError):
+    # Mock implementation for non-Raspberry Pi environments
+    class Color:
+        def __init__(self, r, g, b):
+            pass
+
+    class PixelStrip:
+        def __init__(self, num, pin, freq_hz=800000, dma=10, invert=False, brightness=255, channel=0):
+            self._led_data = [0] * num
+
+        def begin(self):
+            pass
+        def setPixelColor(self, n, color):
+            if n < len(self._led_data):
+                self._led_data[n] = color
+        def show(self):
+            pass
+        def numPixels(self):
+            return len(self._led_data)
+
 from ..base import ServiceBase
 
 
