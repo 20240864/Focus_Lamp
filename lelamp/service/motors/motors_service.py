@@ -1,6 +1,7 @@
 import os
 import csv
 import time
+import json
 from typing import Any, List
 from ..base import ServiceBase
 from lelamp.follower import LeLampFollowerConfig, LeLampFollower
@@ -15,14 +16,16 @@ class MotorsService(ServiceBase):
         self.robot_config = LeLampFollowerConfig(port=port, id=lamp_id)
         self.robot: LeLampFollower = None
         self.recordings_dir = os.path.join(os.path.dirname(__file__), "..", "..", "recordings")
+        self.home_config_path = os.path.join(os.path.dirname(__file__), "..", "..", "follower", "home.json")
         self.playing = False
         self.homing = False
 
+    # 启动电机服务
     def start(self):
-        super().start()
-        self.robot = LeLampFollower(self.robot_config)
-        self.robot.connect(calibrate=True)
-        self.logger.info(f"Motors service connected to {self.port}")
+        super().start() # 启动基础服务
+        self.robot = LeLampFollower(self.robot_config) # 初始化机器人
+        self.robot.connect(calibrate=False) # 连接机器人并校准
+        self.logger.info(f"Motors service connected to {self.port}") # 
 
     def stop(self, timeout: float = 5.0):
         if self.robot:
@@ -35,8 +38,45 @@ class MotorsService(ServiceBase):
             self._handle_play(payload)
         elif event_type == "go_home":
             self._go_home()
+        elif event_type == "go_home_from_json":
+            self._go_home_from_json()
         else:
             self.logger.warning(f"Unknown event type: {event_type}")
+
+    def _go_home_from_json(self):
+        """Move the robot to the home position defined in home.json."""
+        if not self.robot:
+            self.logger.error("Robot not connected")
+            return
+
+        try:
+            self.homing = True
+            self.logger.info(f"Homing robot from {self.home_config_path}...")
+
+            with open(self.home_config_path, 'r') as f:
+                home_config = json.load(f)
+            
+            if 'homing_offset' not in home_config:
+                self.logger.error(f"'homing_offset' not found in {self.home_config_path}")
+                return
+
+            # The send_action method expects a dictionary of {motor_name: position}
+            home_action = home_config['homing_offset']
+            self.robot.send_action(home_action)
+
+            self.logger.info("Waiting for homing movement to complete...")
+            time.sleep(2)  # Give it a moment to start moving
+
+            self.logger.info("Homing complete.")
+
+        except FileNotFoundError:
+            self.logger.error(f"Home config file not found: {self.home_config_path}")
+        except json.JSONDecodeError:
+            self.logger.error(f"Error decoding JSON from {self.home_config_path}")
+        except Exception as e:
+            self.logger.error(f"Error during homing from JSON: {e}")
+        finally:
+            self.homing = False
 
     def _go_home(self):
         """Move the robot to its calibrated home position."""
@@ -131,19 +171,20 @@ class MotorsService(ServiceBase):
         finally:
             self.playing = False
 
+    # 获取可用的动作列表
     def get_available_recordings(self) -> List[str]:
         """Get list of recording names available for this lamp ID"""
         if not os.path.exists(self.recordings_dir):
             return []
         
         recordings = []
-        suffix = f"_{self.lamp_id}.csv"
+        suffix = f"_{self.lamp_id}.csv" # 动作文件名后缀
         
-        for filename in sorted(os.listdir(self.recordings_dir)):
-            if filename.endswith(suffix):
+        for filename in sorted(os.listdir(self.recordings_dir)): # 遍历记录目录
+            if filename.endswith(suffix): # 检查文件名是否以lamp_id后缀结尾
                 # Remove the lamp_id suffix to get the recording name
-                recording_name = filename[:-len(suffix)]
-                recordings.append(recording_name)
+                recording_name = filename[:-len(suffix)] # 去掉lamp_id后缀
+                recordings.append(recording_name) # 去掉后缀后的文件名
 
         return recordings
 
