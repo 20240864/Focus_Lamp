@@ -24,7 +24,7 @@ class MotorsService(ServiceBase):
     def start(self):
         super().start() # 启动基础服务
         self.robot = LeLampFollower(self.robot_config) # 初始化机器人
-        self.robot.connect(calibrate=False) # 连接机器人并校准
+        self.robot.connect(calibrate=True) # 连接机器人并校准
         self.logger.info(f"Motors service connected to {self.port}") # 
 
     def stop(self, timeout: float = 5.0):
