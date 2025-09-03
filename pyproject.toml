@@ -7,8 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "feetech-servo-sdk>=1.0.0",
     "lerobot>=0.3.3",
-    "livekit-agents[openai]~=1.2",
     "livekit-plugins-noise-cancellation~=0.2",
+    "mediapipe>=0.10.14",
+    "ncnn>=1.0.20250503",
     "numpy>=2.2.6",
     "pvporcupine>=3.0.5",
     "pvrecorder>=1.2.7",
@@ -16,6 +17,7 @@ dependencies = [
     "pyaudio>=0.2.14",
     "python-dotenv",
     "sounddevice>=0.5.2",
+    "ultralytics[export]>=8.1.41",
 ]
 
 [tool.uv.sources]
