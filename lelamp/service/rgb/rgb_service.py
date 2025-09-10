@@ -26,7 +26,7 @@ from ..base import ServiceBase
 
 class RGBService(ServiceBase):
     def __init__(self, 
-                 led_count: int = 40,
+                 led_count: int = 64,
                  led_pin: int = 12,
                  led_freq_hz: int = 800000,
                  led_dma: int = 10,
@@ -34,6 +34,7 @@ class RGBService(ServiceBase):
                  led_invert: bool = False,
                  led_channel: int = 0):
         super().__init__("rgb")
+        self.logger.info(f"Initializing RGBService with led_count={led_count}, led_pin={led_pin}")
         
         self.led_count = led_count
         self.strip = PixelStrip(
@@ -41,6 +42,7 @@ class RGBService(ServiceBase):
             led_invert, led_brightness, led_channel
         )
         self.strip.begin()
+        self.logger.info("PixelStrip.begin() called.")
         
     def handle_event(self, event_type: str, payload: Any):
         if event_type == "solid":
@@ -60,10 +62,11 @@ class RGBService(ServiceBase):
             self.logger.error(f"Invalid color format: {color_code}")
             return
             
+        self.logger.info(f"Setting solid color: {color_code}")
         for i in range(self.led_count):
             self.strip.setPixelColor(i, color)
         self.strip.show()
-        self.logger.debug(f"Applied solid color: {color_code}")
+        self.logger.info("PixelStrip.show() called to update LEDs.")
     
     def _handle_paint(self, colors: List[Union[int, tuple]]):
         """Set individual pixel colors from array"""
@@ -90,9 +93,11 @@ class RGBService(ServiceBase):
     
     def clear(self):
         """Turn off all LEDs"""
+        self.logger.info("Clearing all LEDs.")
         for i in range(self.led_count):
             self.strip.setPixelColor(i, Color(0, 0, 0))
         self.strip.show()
+        self.logger.info("PixelStrip.show() called to clear LEDs.")
     
     def stop(self, timeout: float = 5.0):
         """Override stop to clear LEDs before stopping"""

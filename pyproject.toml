@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "board>=1.0",
     "feetech-servo-sdk>=1.0.0",
     "lerobot>=0.3.3",
     "livekit-plugins-noise-cancellation~=0.2",
@@ -16,6 +17,7 @@ dependencies = [
     "pyarrow==20.0.0",
     "pyaudio>=0.2.14",
     "python-dotenv",
+    "rpi-gpio>=0.7.1",
     "sounddevice>=0.5.2",
     "ultralytics[export]>=8.1.41",
 ]

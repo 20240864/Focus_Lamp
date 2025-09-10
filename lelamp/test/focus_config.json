@@ -1,0 +1,11 @@
+{
+    "start_hour": 1,
+    "start_minute": 1,
+    "total_duration_min": 61,
+    "fatigue_level": 5,
+    "focus_mode_m": -1,
+    "lamp_port": "/dev/ttyACM1",
+    "lamp_id": "lelamp",
+    "IDLE_CCT_K": 2060,
+    "IDLE_LUX": 50
+}

@@ -278,6 +278,15 @@ wheels = [
 ]
 
 [[package]]
+name = "board"
+version = "1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/7d/4de4e7b0eb780854e2c1258225a831ef29c447f0e934347ce58128939b69/board-1.0.tar.gz", hash = "sha256:cd718c3322a126d86455e24ae0cebb59a567cbdbaf03696391dccf88c8f456d6", size = 16717, upload-time = "2019-11-01T14:17:31.456Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/b8/461dae0fae64be12d818efab745d520bcf4a96195ccbd5028d58d042e68b/board-1.0-py2.py3-none-any.whl", hash = "sha256:b97c986d0190a2a5181a7fe28959cd8515520b87f672796e21e1b0d32cc63e2f", size = 12869, upload-time = "2019-11-01T14:17:29.838Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2025.8.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1091,6 +1100,7 @@ name = "lelamp-runtime"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "board" },
     { name = "feetech-servo-sdk" },
     { name = "lerobot" },
     { name = "livekit-plugins-noise-cancellation" },
@@ -1102,6 +1112,7 @@ dependencies = [
     { name = "pyarrow" },
     { name = "pyaudio" },
     { name = "python-dotenv" },
+    { name = "rpi-gpio" },
     { name = "sounddevice" },
     { name = "ultralytics", extra = ["export"] },
 ]
@@ -1115,6 +1126,7 @@ hardware = [
 [package.metadata]
 requires-dist = [
     { name = "adafruit-circuitpython-neopixel", marker = "extra == 'hardware'" },
+    { name = "board", specifier = ">=1.0" },
     { name = "feetech-servo-sdk", specifier = ">=1.0.0" },
     { name = "lerobot", git = "https://github.com/huggingface/lerobot" },
     { name = "livekit-plugins-noise-cancellation", specifier = "~=0.2" },
@@ -1126,6 +1138,7 @@ requires-dist = [
     { name = "pyarrow", specifier = "==20.0.0" },
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "python-dotenv" },
+    { name = "rpi-gpio", specifier = ">=0.7.1" },
     { name = "rpi-ws281x", marker = "extra == 'hardware'" },
     { name = "sounddevice", specifier = ">=0.5.2" },
     { name = "ultralytics", extras = ["export"], specifier = ">=8.1.41" },
@@ -2495,6 +2508,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/db/3ce2be017d7d4ac0948fb064bf7417b36c96bc07d1b8a922017606ba03c6/rerun_sdk-0.22.1-cp38-abi3-manylinux_2_31_x86_64.whl", hash = "sha256:b9672412d0cdf57c79c10ca683e59716399da3358df78b985b25093d022ebbaf", size = 51423327, upload-time = "2025-02-20T10:43:48.471Z" },
     { url = "https://files.pythonhosted.org/packages/43/eb/edafdcba1619955c2c9b66c7a1bcbbce4ad62a1a36db984b46aa793fe366/rerun_sdk-0.22.1-cp38-abi3-win_amd64.whl", hash = "sha256:d3d0afe1b8e749a1088a0bb75f372ad7fe70eb3728bd32e07bf78300436a053d", size = 42085149, upload-time = "2025-02-20T10:43:56.563Z" },
 ]
+
+[[package]]
+name = "rpi-gpio"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/0f/10b524a12b3445af1c607c27b2f5ed122ef55756e29942900e5c950735f2/RPi.GPIO-0.7.1.tar.gz", hash = "sha256:cd61c4b03c37b62bba4a5acfea9862749c33c618e0295e7e90aa4713fb373b70", size = 29090, upload-time = "2022-02-06T15:15:06.022Z" }
 
 [[package]]
 name = "rpi-ws281x"

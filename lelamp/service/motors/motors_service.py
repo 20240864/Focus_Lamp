@@ -32,7 +32,6 @@ class MotorsService(ServiceBase):
             self.robot.disconnect()
             self.robot = None
         super().stop(timeout)
-
     def handle_event(self, event_type: str, payload: Any):
         if event_type == "play":
             self._handle_play(payload)
